@@ -1,23 +1,40 @@
-from pylivetrader.pipeline import Pipeline
-from quantopian.algorithm import attach_pipeline, pipeline_output
-from quantopian.pipeline.data.builtin import USEquityPricing
-from quantopian.pipeline.data import morningstar
-from quantopian.pipeline.factors import SimpleMovingAverage, AverageDollarVolume
-from zipline.pipeline.filters.morningstar import IsPrimaryShare
-
+from zipline.pipeline import Pipeline
+#from pylivetrader.algorithm import attach_pipeline, pipeline_output
+from pipeline_live.data.alpaca.pricing import USEquityPricing
+from pipeline_live.data.alpaca.factors import SimpleMovingAverage, AverageDollarVolume
 import numpy as np  # needed for NaN handling
 import math  # ceil and floor are useful for rounding
-
 from itertools import cycle
 
 
+
+from pylivetrader.api import (
+    attach_pipeline,
+    date_rules,
+    time_rules,
+    order,
+    get_open_orders,
+    cancel_order,
+    pipeline_output,
+    schedule_function,
+)
+from pipeline_live.data.iex.pricing import USEquityPricing
+from pipeline_live.data.iex.fundamentals import IEXCompany, IEXKeyStats
+from pipeline_live.data.iex.factors import (
+    SimpleMovingAverage, AverageDollarVolume,
+)
+from pipeline_live.data.polygon.filters import (
+    IsPrimaryShareEmulation as IsPrimaryShare,
+)
+from pylivetrader.finance.execution import LimitOrder
+import os
+import logbook
+os.environ['IEX_TOKEN'] = "sk_5dbe493d09d4410b9390e22b0c40858d"
+log = logbook.Logger('algo')
 def initialize(context):
-    # set_commission(commission.PerShare(cost=0.01, min_trade_cost=1.50))
-    set_slippage(slippage.VolumeShareSlippage(volume_limit=.20, price_impact=0.0))
-    # set_slippage(slippage.FixedSlippage(spread=0.00))
-    set_commission(commission.PerTrade(cost=0.00))
-    # set_slippage(slippage.FixedSlippage(spread=0.00))
-    set_long_only()
+    #set_slippage(slippage.VolumeShareSlippage(volume_limit=.20, price_impact=0.0))
+    #set_commission(commission.PerTrade(cost=0.0))
+    #set_long_only()
 
     context.MaxCandidates = 100
     context.MaxBuyOrdersAtOnce = 30
@@ -28,13 +45,13 @@ def initialize(context):
 
     # over simplistic tracking of position age
     context.age = {}
-    print len(context.portfolio.positions)
+    print(len(context.portfolio.positions))
 
     # Rebalance
     EveryThisManyMinutes = 5
     TradingDayHours = 6.5
     TradingDayMinutes = int(TradingDayHours * 60)
-    for minutez in xrange(
+    for minutez in range(
             1,
             TradingDayMinutes,
             EveryThisManyMinutes
@@ -57,34 +74,20 @@ def make_pipeline(context):
     Create our pipeline.
     """
 
+
     # Filter for primary share equities. IsPrimaryShare is a built-in filter.
     primary_share = IsPrimaryShare()
 
-    # Equities listed as common stock (as opposed to, say, preferred stock).
-    # 'ST00000001' indicates common stock.
-    common_stock = morningstar.share_class_reference.security_type.latest.eq('ST00000001')
-
-    # Non-depositary receipts. Recall that the ~ operator inverts filters,
-    # turning Trues into Falses and vice versa
-    not_depositary = ~morningstar.share_class_reference.is_depositary_receipt.latest
-
-    # Equities not trading over-the-counter.
-    not_otc = ~morningstar.share_class_reference.exchange_id.latest.startswith('OTC')
-
     # Not when-issued equities.
-    not_wi = ~morningstar.share_class_reference.symbol.latest.endswith('.WI')
+    not_wi = ~IEXCompany.symbol.latest.endswith('.WI')
 
     # Equities without LP in their name, .matches does a match using a regular
     # expression
-    not_lp_name = ~morningstar.company_reference.standard_name.latest.matches('.* L[. ]?P.?$')
-
-    # Equities with a null value in the limited_partnership Morningstar
-    # fundamental field.
-    not_lp_balance_sheet = morningstar.balance_sheet.limited_partnership.latest.isnull()
+    not_lp_name = ~IEXCompany.companyName.latest.matches('.* L[. ]?P.?$')
 
     # Equities whose most recent Morningstar market cap is not null have
     # fundamental data and therefore are not ETFs.
-    have_market_cap = morningstar.valuation.market_cap.latest.notnull()
+    have_market_cap = IEXKeyStats.marketcap.latest >= 1
 
     # At least a certain price
     price = USEquityPricing.close.latest
@@ -94,12 +97,8 @@ def make_pipeline(context):
     # Filter for stocks that pass all of our previous filters.
     tradeable_stocks = (
             primary_share
-            & common_stock
-            & not_depositary
-            & not_otc
             & not_wi
             & not_lp_name
-            & not_lp_balance_sheet
             & have_market_cap
             & AtLeastPrice
             & AtMostPrice
@@ -167,7 +166,7 @@ def before_trading_start(context, data):
     context.MyCandidate = cycle(context.stocks_worst)
 
     context.LowestPrice = context.MyLeastPrice  # reset beginning of day
-    print len(context.portfolio.positions)
+    print(len(context.portfolio.positions))
     for stock in context.portfolio.positions:
         CurrPrice = float(data.current([stock], 'price'))
         if CurrPrice < context.LowestPrice:
@@ -270,7 +269,7 @@ def my_record_vars(context, data):
     record(positions=len(context.portfolio.positions))
     if 0 < len(context.age):
         MaxAge = context.age[max(context.age.keys(), key=(lambda k: context.age[k]))]
-        print MaxAge
+        print(MaxAge)
         record(MaxAge=MaxAge)
     record(LowestPrice=context.LowestPrice)
 

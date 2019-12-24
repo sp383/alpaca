@@ -1,6 +1,7 @@
-import requests, json
-import config
+import json
 import time
+import config
+import requests
 
 beginning_of_time = time.time()
 BASE_URL = "https://paper-api.alpaca.markets"
@@ -62,5 +63,3 @@ print(getAOrder("AAPL"))
 
 time_elapsed = round(time.time() - beginning_of_time, 3)
 print(time_elapsed)
-
-
