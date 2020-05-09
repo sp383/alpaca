@@ -1,4 +1,6 @@
-key_id : "PK7UIOIB141I8YPO3LLZ"
-secret : "mLZ9Od3o0BOBH2/QiEi9D4DwimwudtOsR3SHpouM"
-base_url: "https://paper-api.alpaca.markets"
-#IEX_TOKEN: "sk_5dbe493d09d4410b9390e22b0c40858d"
+key_id : "AKXN3YGUYP0P0DKK5JBU"
+secret : "avQ8FD6C6o9u7VmoajcaMuFFRXrSZkcKGBiI4eqo"
+base_url: "https://api.alpaca.markets"
+#IEX_TOKEN: "sk_5ace331d86da48369bc728cf6ed95fb7"
+
+#SP_IEX_TOKEN: = "sk_9678cd65b36a4eaf9862c056777c489b"

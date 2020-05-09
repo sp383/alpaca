@@ -1,4 +1,7 @@
-from zipline.pipeline import Pipeline
+from zipline.pipeline import *
+from pipeline_live import *
+from pylivetrader import *
+from iexfinance import *
 #from pylivetrader.algorithm import attach_pipeline, pipeline_output
 from pipeline_live.data.alpaca.pricing import USEquityPricing
 from pipeline_live.data.alpaca.factors import SimpleMovingAverage, AverageDollarVolume
@@ -29,7 +32,9 @@ from pipeline_live.data.polygon.filters import (
 from pylivetrader.finance.execution import LimitOrder
 import os
 import logbook
-os.environ['IEX_TOKEN'] = "sk_5dbe493d09d4410b9390e22b0c40858d"
+os.environ['IEX_API_VERSION'] = "iexcloud-v1"
+os.environ['IEX_TOKEN'] = "sk_9678cd65b36a4eaf9862c056777c489b"
+#os.environ['IEX_TOKEN'] = "sk_5ace331d86da48369bc728cf6ed95fb7"
 log = logbook.Logger('algo')
 def initialize(context):
     #set_slippage(slippage.VolumeShareSlippage(volume_limit=.20, price_impact=0.0))
@@ -67,6 +72,7 @@ def initialize(context):
     # Create our pipeline and attach it to our algorithm.
     my_pipe = make_pipeline(context)
     attach_pipeline(my_pipe, 'my_pipeline')
+    print("test 1 complete")
 
 
 def make_pipeline(context):
@@ -107,6 +113,8 @@ def make_pipeline(context):
     LowVar = 6
     HighVar = 40
 
+    print("test 2 complete")
+
     log.info('\nAlgorithm initialized variables:\n context.MaxCandidates %s \n LowVar %s \n HighVar %s'
              % (context.MaxCandidates, LowVar, HighVar)
              )
@@ -137,12 +145,17 @@ def make_pipeline(context):
     stocks_worst = percent_difference.bottom(context.MaxCandidates)
     securities_to_trade = (stocks_worst)
 
+    print("test 3 complete")
+
     return Pipeline(
         columns={
             'stocks_worst': stocks_worst
         },
         screen=(securities_to_trade),
     )
+    print("test 4 complete")
+
+
 
 
 def my_compute_weights(context):

@@ -58,7 +58,7 @@ def getAOrder(symbol):
 #for i in range (30):
 #    limit_order("VKTX", i, "buy", "limit", "day", 7)
 
-print(getAOrder("AAPL"))
+print(getAOrder("APPL"))
 
 
 time_elapsed = round(time.time() - beginning_of_time, 3)
